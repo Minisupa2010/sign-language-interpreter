@@ -1,6 +1,7 @@
 # Sign Language Interpreter (Web-Based)
 
-This is a web-based sign language interpreter powered by Teachable Machine. It uses a webcam to detect hand gestures and convert them into letters or sentences in real-time.
+GES Is a program uses a webcam and ML to recognize hand gestures, converting them into letters and sentences in real-time. empowering people with speech disabilities to communicate silently and independently.
+
 
 ## 🌐 Live Demo
 Once deployed via GitHub Pages, your site will be accessible at:
