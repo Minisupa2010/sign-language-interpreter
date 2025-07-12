@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gesture to Sentence - Letter Interpreter</title>
+
+  <!-- Material Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --md-primary: #1976d2;
+      --md-primary-light: #63a4ff;
+      --md-primary-dark: #004ba0;
+      --md-surface: #ffffff;
+      --md-bg: #f5f5f5;
+      --md-on-primary: #ffffff;
+      --md-on-surface: #000000de;
+
+      --dark-bg: #121212;
+      --dark-surface: #1e1e1e;
+      --dark-text: #ffffffde;
+    }
+
+    [data-theme="dark"] {
+      --md-bg: var(--dark-bg);
+      --md-surface: var(--dark-surface);
+      --md-on-surface: var(--dark-text);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+  background-image: url('https://img.freepik.com/free-vector/realistic-glassmorphism-background_23-2149441716.jpg');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  backdrop-filter: blur(12px) brightness(0.9);
+  -webkit-backdrop-filter: blur(12px) brightness(0.9);
+      font-family: 'Roboto', sans-serif;
+      
+    background: url('https://img.freepik.com/free-vector/realistic-glassmorphism-background_23-2149441716.jpg') no-repeat center center/cover;
+    backdrop-filter: blur(12px) brightness(0.9);
+    -webkit-backdrop-filter: blur(12px) brightness(0.9);
+    
+      color: var(--md-on-surface);
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+
+    main {
+      background: var(--md-surface);
+      max-width: 400px;
+      width: 100%;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    h2 {
+      text-align: center;
+      font-weight: 500;
+      color: var(--md-primary-dark);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      flex: 1;
+      font-size: 1rem;
+      font-weight: 500;
+      background-color: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible {
+      background-color: var(--md-primary-light);
+      outline: 3px solid var(--md-primary-dark);
+      outline-offset: 2px;
+    }
+
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    label {
+      font-weight: 500;
+      color: var(--md-primary-dark);
+    }
+
+    input[type="text"] {
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1.5px solid #ccc;
+      background-color: var(--md-surface);
+      color: inherit;
+    }
+
+    input[readonly] {
+      background-color: #eee;
+      cursor: default;
+    }
+
+    #webcam-container {
+      display: flex;
+      justify-content: center;
+    }
+
+    #webcam-container canvas {
+      width: 100%;
+      max-width: 280px;
+      border-radius: 10px;
+      border: 3px solid var(--md-primary);
+    }
+
+    .toggle-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toggle-bar button {
+      flex: none;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 480px) {
+      main {
+        padding: 1rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      button {
+        font-size: 0.9rem;
+      }
+    }
+  
+[data-theme="dark"] body {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(30, 30, 30, 0.8)),
+    url('https://img.freepik.com/free-vector/realistic-glassmorphism-background_23-2149441716.jpg');
+  background-blend-mode: darken;
+  backdrop-filter: blur(16px) brightness(0.6);
+  -webkit-backdrop-filter: blur(16px) brightness(0.6);
+}
+
+</style>
+</head>
+
+<body>
+
+<main role="main" aria-label="Gesture Interpreter">
+  <div class="toggle-bar">
+    <h2>Gesture-to-Letter</h2>
+    <button id="toggle-theme" type="button">🌙</button>
+  </div>
+
+  <div class="buttons">
+    <button id="start-btn" type="button" aria-label="Start Camera and Recognition">Start</button>
+    <button id="stop-btn" type="button" aria-label="Stop Camera" disabled>Stop</button>
+    <button id="clear-btn" type="button" aria-label="Clear Sentence">Clear</button>
+  </div>
+
+  <div id="webcam-container" aria-live="polite" aria-label="Webcam View"></div>
+
+  <div class="input-group">
+    <label for="current-letter">Current Letter</label>
+    <input type="text" id="current-letter" readonly aria-live="polite" />
+  </div>
+
+  <div class="input-group">
+    <label for="sentence-box">Sentence So Far</label>
+    <input type="text" id="sentence-box" readonly aria-live="polite" />
+  </div>
+
+  <div class="input-group">
+    <label for="word-count">Word Count</label>
+    <input type="text" id="word-count" readonly />
+  </div>
+
+  <div class="input-group" style="display: flex; justify-content: space-between; align-items: center;">
+    <button id="copy-btn" type="button" aria-label="Copy sentence to clipboard" style="flex: none; padding: 0.5rem 1rem; margin-left: 1rem; border-radius: 8px; border: none; background-color: var(--md-primary); color: var(--md-on-primary); cursor: pointer;">Copy</button>
+  </div>
+</main>
+
+<!-- Teachable Machine Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<script>
+  const URL = "https://teachablemachine.withgoogle.com/models/vzxfxf0Ta/";
+  let model, webcam, maxPredictions;
+  let sentence = "";
+  let lastLetter = "";
+  const CONFIDENCE_THRESHOLD = 0.7;
+
+  const startBtn = document.getElementById("start-btn");
+  const stopBtn = document.getElementById("stop-btn");
+  const clearBtn = document.getElementById("clear-btn");
+  const toggleBtn = document.getElementById("toggle-theme");
+  const copyBtn = document.getElementById("copy-btn");
+
+  const currentLetterInput = document.getElementById("current-letter");
+  const sentenceBox = document.getElementById("sentence-box");
+  const wordCountInput = document.getElementById("word-count");
+  const webcamContainer = document.getElementById("webcam-container");
+
+  let loopId = null;
+
+  // Load theme from localStorage
+  const savedTheme = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+  toggleBtn.textContent = savedTheme === "dark" ? "☀️" : "🌙";
+
+  toggleBtn.addEventListener("click", () => {
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", newTheme);
+    toggleBtn.textContent = newTheme === "dark" ? "☀️" : "🌙";
+    localStorage.setItem("theme", newTheme);
+  });
+
+  clearBtn.addEventListener("click", () => {
+    sentence = "";
+    lastLetter = "";
+    wordCountInput.value = "0";
+    sentenceBox.value = "";
+
+    const originalUpdateSentenceUI = updateSentenceUI;
+    updateSentenceUI = () => {}; // temporarily disable updates
+
+    setTimeout(() => {
+      updateSentenceUI = originalUpdateSentenceUI;
+    }, 3000);
+    updateSentenceUI();
+    lastLetter = "";
+    wordCountInput.value = "0";
+  });
+
+  copyBtn.addEventListener("click", () => {
+    if (sentence.trim() === "") return alert("Nothing to copy!");
+    navigator.clipboard.writeText(sentence).then(() => {
+      alert("Sentence copied to clipboard!");
+    });
+  });
+
+  startBtn.addEventListener("click", async () => {
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    await init();
+  });
+
+  stopBtn.addEventListener("click", () => {
+    stopWebcam();
+    stopBtn.disabled = true;
+    startBtn.disabled = false;
+    currentLetterInput.value = "";
+    });
+
+  async function init() {
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+
+    webcam = new tmImage.Webcam(280, 280, true);
+    await webcam.setup();
+    await webcam.play();
+
+    webcamContainer.innerHTML = "";
+    webcamContainer.appendChild(webcam.canvas);
+
+    loopId = requestAnimationFrame(loop);
+  }
+
+  async function loop() {
+    if (!webcam) return;
+    webcam.update();
+    await predict();
+    loopId = requestAnimationFrame(loop);
+  }
+
+  async function predict() {
+    const predictions = await model.predict(webcam.canvas);
+    let maxProb = 0;
+    let predictedClass = "";
+
+    predictions.forEach(p => {
+      if (p.probability > maxProb) {
+        maxProb = p.probability;
+        predictedClass = p.className;
+      }
+    });
+
+    if (maxProb > CONFIDENCE_THRESHOLD && predictedClass.toLowerCase() !== "none") {
+      if (predictedClass !== lastLetter) {
+        lastLetter = predictedClass;
+        currentLetterInput.value = lastLetter;
+
+        switch (lastLetter.toLowerCase()) {
+          case "space":
+            sentence += " ";
+            break;
+          case "clear":
+            sentence = "";
+            break;
+          case "backspace":
+            sentence = sentence.slice(0, -1);
+            break;
+          default:
+            sentence += lastLetter;
+        }
+
+        updateSentenceUI();
+        playBeep();
+      }
+    } else {
+      currentLetterInput.value = "";
+    }
+  }
+
+  function updateSentenceUI() {
+    sentenceBox.value = sentence;
+    const words = sentence.trim().split(/\s+/).filter(Boolean);
+    wordCountInput.value = words.length;
+  }
+
+  function stopWebcam() {
+    if (loopId) cancelAnimationFrame(loopId);
+    if (webcam && webcam.webcam) {
+      webcam.webcam.pause();
+      if (webcam.webcam.srcObject) {
+        webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
+      }
+      webcam.webcam.srcObject = null;
+      webcamContainer.innerHTML = "";
+      webcam = null;
+    }
+  }
+
+  function playBeep() {
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(600, ctx.currentTime);
+    oscillator.connect(ctx.destination);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.05);
+  }
+</script>
+
+</body>
+</html>
