@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gesture‑to‑Sentence — Interpreter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* =====  COLOR TOKENS  ===== */
+    :root {
+      /* brand */
+      --brand: #4a90e2;
+      --brand-light: #6fb4ff;
+      --brand-dark: #357ab8;
+
+      /* glass */
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-border: rgba(255, 255, 255, 0.35);
+      --glass-blur: 22px;
+
+      /* light surface */
+      
+      --text-main: #1b1b1f;
+      --text-muted: #505050;
+
+      /* dark overrides  */
+      --bg-main-dark: #0d0d0e;
+      --glass-bg-dark: rgba(25, 25, 25, 0.35);
+      --glass-border-dark: rgba(255, 255, 255, 0.12);
+      --text-main-dark: #f0f0f0;
+    }
+
+    /* LIGHT THEME BACKGROUND */
+    [data-theme="light"] {
+      background-image: url("https://cdn.corenexis.com/i/mm/jl12/6SweBM.png?token=db9a255204a7213a0cd120538ca292df");
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+
+      
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-border: rgba(255, 255, 255, 0.35);
+      --text-main: #1b1b1f;
+      --text-muted: #505050;
+    }
+
+    /* DARK THEME BACKGROUND */
+    [data-theme="dark"] {
+      background-image: url("https://cdn.corenexis.com/i/mm/jl12/igRy38.png?token=d8268bd984847c0e8670c4ec318199db"); /* <-- Dark mode image */
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+
+      
+      --glass-bg: var(--glass-bg-dark);
+      --glass-border: var(--glass-border-dark);
+      --text-main: var(--text-main-dark);
+      --text-muted: #b8b8b8;
+    }
+
+    /* =====  GLOBAL RESET  ===== */
+    ,::before,*::after { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:'Roboto',sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:2rem 1rem;
+      transition:background-color .3s ease,color .3s ease;
+    }
+
+    /* =====  CARD / MAIN WRAPPER  ===== */
+    main {
+      width:100%;
+      max-width:420px;
+      padding:2rem 1.75rem;
+      border-radius:18px;
+      backdrop-filter:blur(var(--glass-blur)) saturate(140%);
+      -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(140%);
+      background:var(--glass-bg);
+      border:1px solid var(--glass-border);
+      box-shadow:0 18px 45px rgba(0,0,0,.25);
+      display:flex;
+      flex-direction:column;
+      gap:1.35rem;
+    }
+
+    h2 {
+      margin:0 auto 0 0;
+      font-weight:500;
+      font-size:1.4rem;
+    }
+
+    /* =====  TOGGLE  ===== */
+    .toggle-bar { display:flex; align-items:center; justify-content:space-between; }
+    .toggle-bar button {
+      background:none;
+      border:none;
+      font-size:1.35rem;
+      cursor:pointer;
+      color:var(--text-main);
+      transition:transform .25s ease;
+    }
+    .toggle-bar button:hover{ transform:rotate(20deg);} 
+
+    /* =====  BUTTONS  ===== */
+    .buttons { display:flex; gap:.8rem; }
+    button.ctrl {
+      flex:1;
+      border:none;
+      border-radius:12px;
+      padding:.7rem 1rem;
+      font-size:1rem;
+      font-weight:500;
+      color:#fff;
+      background:var(--brand);
+      cursor:pointer;
+      transition:background .25s ease,transform .25s ease;
+    }
+    button.ctrl:hover:not(:disabled) { background:var(--brand-light); transform:translateY(-2px); }
+    button.ctrl:disabled { background:#5a5a5a; cursor:not-allowed; }
+
+    /* =====  INPUT  ===== */
+    .input-group { display:flex; flex-direction:column; gap:.35rem; }
+    label { font-size:.9rem; color:var(--text-muted); font-weight:500; }
+    input[type="text"] {
+      border:none;
+      border-radius:10px;
+      padding:.65rem .75rem;
+      font-size:1rem;
+      background:rgba(255,255,255,0.08);
+      color:var(--text-main);
+      backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      box-shadow:inset 0 0 4px rgba(0,0,0,.15);
+    }
+    input[readonly] { cursor:default; }
+
+    /* =====  WEBCAM  ===== */
+    #webcam-container { display:flex; justify-content:center; }
+    #webcam-container canvas {
+      width:100%;
+      max-width:300px;
+      border-radius:14px;
+      border:2px solid var(--glass-border);
+    }
+
+    /* ===== PAIR CONTAINER (Word Count + Accuracy) ===== */
+    .pair {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:1rem;
+    }
+    .pair > .input-group {
+      flex: 1 1 45%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* === WIDTH ADJUSTMENTS FOR TEXTBOXES === */
+    #word-count {
+      width: 120px;
+    }
+    #confidence {
+      width: 180px;
+    }
+
+    @media(max-width:480px){
+      main{padding:1.25rem;}
+      .buttons{flex-direction:column;}
+      .pair {
+        flex-direction: column;
+      }
+      .pair > .input-group {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main role="main" aria-label="Gesture Interpreter">
+    <div class="toggle-bar">
+      <h2>Gesture‑to‑Letter</h2>
+      <button id="toggle-theme" aria-label="Toggle theme">🌙</button>
+    </div>
+
+    <div class="buttons">
+      <button id="start-btn"  class="ctrl" aria-label="Start Camera and Recognition">Start</button>
+      <button id="stop-btn"   class="ctrl" aria-label="Stop Camera" disabled>Stop</button>
+      <button id="clear-btn"  class="ctrl" aria-label="Clear Sentence">Clear</button>
+    </div>
+
+    <div id="webcam-container" aria-live="polite" aria-label="Webcam View"></div>
+
+    <div class="input-group">
+      <label for="current-letter">Current Letter</label>
+      <input type="text" id="current-letter" readonly aria-live="polite" />
+    </div>
+
+    <div class="input-group">
+      <label for="sentence-box">Sentence So Far</label>
+      <input type="text" id="sentence-box" readonly aria-live="polite" />
+    </div>
+
+    <div class="pair">
+      <div class="input-group" style="flex:1;">
+        <label for="word-count">Word Count</label>
+        <input type="text" id="word-count" readonly />
+      </div>
+      <div class="input-group" style="flex:1;">
+        <label for="confidence">Accuracy</label>
+        <input type="text" id="confidence" readonly />
+      </div>
+    </div>
+
+    <button id="copy-btn" class="ctrl" style="margin-top:.25rem;" aria-label="Copy sentence">Copy Sentence</button>
+  </main>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<script>
+  const URL = "https://teachablemachine.withgoogle.com/models/vzxfxf0Ta/";
+  const CONFIDENCE_THRESHOLD = 0.7;
+
+  let model, webcam, maxPredictions;
+  let sentence = "";
+  let lastLetter = "";
+  let allowPrediction = true;
+  let clearDelay = false;
+
+  const startBtn = document.getElementById("start-btn");
+  const stopBtn  = document.getElementById("stop-btn");
+  const clearBtn = document.getElementById("clear-btn");
+  const toggleBtn= document.getElementById("toggle-theme");
+  const copyBtn  = document.getElementById("copy-btn");
+
+  const currentLetterInput = document.getElementById("current-letter");
+  const sentenceBox        = document.getElementById("sentence-box");
+  const wordCountInput     = document.getElementById("word-count");
+  const confidenceInput    = document.getElementById("confidence");
+  const webcamContainer    = document.getElementById("webcam-container");
+
+  let loopId = null;
+
+  const savedTheme = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+  toggleBtn.textContent = savedTheme === "dark" ? "☀" : "🌙";
+
+  toggleBtn.addEventListener("click", () => {
+    const t = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", t);
+    toggleBtn.textContent = t === "dark" ? "☀" : "🌙";
+    localStorage.setItem("theme", t);
+  });
+
+  clearBtn.addEventListener("click", () => {
+    sentence = "";
+    updateSentenceUI();
+    lastLetter = "";
+    confidenceInput.value = "";
+    wordCountInput.value = "0";
+
+    clearDelay = true;
+    allowPrediction = false;
+    setTimeout(() => {
+      clearDelay = false;
+      allowPrediction = true;
+    }, 3000); // 3 sec delay after button clear
+  });
+
+  copyBtn.addEventListener("click", () => {
+    if (!sentence.trim()) return alert("Nothing to copy!");
+    navigator.clipboard.writeText(sentence).then(() => alert("Sentence copied!"));
+  });
+
+  startBtn.addEventListener("click", async () => {
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    await init();
+  });
+
+  stopBtn.addEventListener("click", () => {
+    stopWebcam();
+    stopBtn.disabled = true;
+    startBtn.disabled = false;
+    currentLetterInput.value = "";
+    confidenceInput.value = "";
+  });
+
+  async function init() {
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+
+    webcam = new tmImage.Webcam(300, 300, true);
+    await webcam.setup();
+    await webcam.play();
+    webcamContainer.innerHTML = "";
+    webcamContainer.appendChild(webcam.canvas);
+    loopId = requestAnimationFrame(loop);
+  }
+
+  async function loop() {
+    if (!webcam) return;
+    webcam.update();
+    await predict();
+    loopId = requestAnimationFrame(loop);
+  }
+
+  async function predict() {
+    if (!allowPrediction || clearDelay) return;
+
+    const preds = await model.predict(webcam.canvas);
+    let maxProb = 0, cls = "";
+    preds.forEach(p => {
+      if (p.probability > maxProb) {
+        maxProb = p.probability;
+        cls = p.className;
+      }
+    });
+
+    confidenceInput.value = (maxProb * 100).toFixed(1) + "%";
+
+    if (maxProb > CONFIDENCE_THRESHOLD && cls.toLowerCase() !== "none") {
+      if (cls !== lastLetter) {
+        lastLetter = cls;
+        currentLetterInput.value = cls;
+
+        switch (cls.toLowerCase()) {
+          case "space":
+          case "clear":  // Treat "clear" gesture like space now
+            sentence += " ";
+            break;
+          case "backspace":
+            sentence = sentence.slice(0, -1);
+            break;
+          default:
+            sentence += cls;
+        }
+
+        updateSentenceUI();
+
+        allowPrediction = false;
+        setTimeout(() => {
+          allowPrediction = true;
+        }, 1000); // 1 second delay for gestures
+      }
+    } else {
+      currentLetterInput.value = "";
+    }
+  }
+
+  function updateSentenceUI() {
+    sentenceBox.value = sentence;
+    wordCountInput.value = sentence.trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  function stopWebcam() {
+    if (loopId) cancelAnimationFrame(loopId);
+    if (webcam && webcam.webcam) {
+      webcam.webcam.pause();
+      webcam.webcam.srcObject?.getTracks().forEach(t => t.stop());
+      webcam.webcam.srcObject = null;
+    }
+    webcamContainer.innerHTML = "";
+    webcam = null;
+  }
+</script>
+
+
+</body>
+</html>
